@@ -2,7 +2,11 @@
 export default {
   content: ['./src/**/*.jsx'],
   theme: {
-    extend: {},
+    extend: {
+      spacing: {
+        single: '1px',
+      },
+    },
   },
   plugins: [],
 };

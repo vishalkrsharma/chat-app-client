@@ -5,16 +5,18 @@ import Logo from '../components/Logo';
 import { UserContext } from '../context/UserContext';
 import { uniqBy } from 'lodash';
 import axios from 'axios';
+import Contact from '../components/Contact';
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState([]);
+  const [offlinePeople, setOfflinePeople] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [newMessageText, setNewMessageText] = useState('');
   const [messages, setMessages] = useState([]);
   const divUnderMessages = useRef();
 
-  const { username, id } = useContext(UserContext);
+  const { username, id, setId, setUsername } = useContext(UserContext);
 
   useEffect(() => {
     connectToWs();
@@ -36,6 +38,19 @@ export default function Chat() {
     }
     getMessages();
   }, [selectedUserId]);
+
+  useEffect(() => {
+    async function getPeople() {
+      const { data } = await axios.get('/people');
+      const offlinePeopleArr = data.filter((p) => p._id !== id).filter((p) => !Object.keys(onlinePeople).includes(p._id));
+      const offlinePeople = {};
+      offlinePeopleArr.forEach((p) => {
+        offlinePeople[p._id] = p.username;
+      });
+      setOfflinePeople(offlinePeople);
+    }
+    getPeople();
+  }, [onlinePeople]);
 
   const connectToWs = () => {
     const ws = new WebSocket('ws://localhost:5000');
@@ -86,28 +101,56 @@ export default function Chat() {
     ]);
   };
 
+  const logout = () => {
+    async function logout() {
+      await axios.post('/logout');
+      setId(null);
+      setUsername(null);
+      setWs(null);
+    }
+    logout();
+  };
+
   const onlinePeopleExclOurUser = { ...onlinePeople };
   delete onlinePeopleExclOurUser[id];
 
   const messagesWithoutDupes = uniqBy(messages, '_id');
 
   return (
-    <div className='flex h-screen '>
-      <div className='bg-white w-1/3'>
-        <Logo />
-        {Object.keys(onlinePeopleExclOurUser).map((userId) => (
-          <div
-            className={`flex items-center cursor-pointer  hover:bg-gray-100 border-b border-gray-100 ${userId === selectedUserId ? 'bg-blue-50' : ''}`}
-            onClick={() => setSelectedUserId(userId)}
-            key={userId}
+    <div className='flex h-screen'>
+      <div className='bg-white w-1/3 flex flex-col mb-2'>
+        <div className='flex-grow'>
+          <Logo />
+          {Object.keys(onlinePeopleExclOurUser).map((userId) => (
+            <Contact
+              id={userId}
+              username={onlinePeopleExclOurUser[userId]}
+              onClick={() => setSelectedUserId(userId)}
+              selected={userId === selectedUserId}
+              online={true}
+              key={userId}
+            />
+          ))}
+          {Object.keys(offlinePeople).map((userId) => (
+            <Contact
+              id={userId}
+              username={offlinePeople[userId]}
+              onClick={() => setSelectedUserId(userId)}
+              selected={userId === selectedUserId}
+              online={false}
+              key={userId}
+            />
+          ))}
+        </div>
+        <div className='text-center'>
+          <button
+            className='text-sm text-gray-500 bg-blue-100 py-1 px-2'
+            type='button'
+            onClick={logout}
           >
-            {userId === selectedUserId && <div className='w-1 bg-blue-500 h-14 absolute rounded-r-md'></div>}
-            <div className='pl-6 px-4 py-2 flex items-center gap-3'>
-              <Avatars username={onlinePeople[userId]} />
-              {userId === id ? onlinePeople[userId] + ' (me)' : onlinePeople[userId]}
-            </div>
-          </div>
-        ))}
+            Logout
+          </button>
+        </div>
       </div>
       <div className=' flex flex-col bg-blue-50 w-2/3 p-2'>
         <div className='flex-grow'>

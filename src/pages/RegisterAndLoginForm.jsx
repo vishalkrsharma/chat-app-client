@@ -40,6 +40,7 @@ export default function RegisterAnLoginForm() {
           id='username'
           placeholder='Username'
           onChange={handleChange}
+          required
         />
         <input
           className='block w-full rounded-sm p-2 mb-2 border'
@@ -49,6 +50,7 @@ export default function RegisterAnLoginForm() {
           id='password'
           placeholder='Password'
           onChange={handleChange}
+          required
         />
         <button className='bg-blue-500 text-white block w-full rounded-sm p-2'>{isLoginOrRegister === 'register' ? 'Register' : 'Login'}</button>
         <div className='text-center mt-2'>

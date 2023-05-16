@@ -1,13 +1,18 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { BiSend } from 'react-icons/bi';
 import Avatars from '../components/Avatars';
 import Logo from '../components/Logo';
 import { UserContext } from '../context/UserContext';
+import { uniqBy } from 'lodash';
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [messages, setMessages] = useState([]);
+  const divUnderMessages = useRef();
+
   const { username, id } = useContext(UserContext);
 
   useEffect(() => {
@@ -16,8 +21,12 @@ export default function Chat() {
     ws.addEventListener('message', handleMessage);
   }, []);
 
-  const onlinePeopleExclOurUser = { ...onlinePeople };
-  delete onlinePeopleExclOurUser[id];
+  useEffect(() => {
+    const div = divUnderMessages.current;
+    if (div) {
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const showOnlinePeople = (peopleArray) => {
     const people = {};
@@ -29,16 +38,43 @@ export default function Chat() {
 
   const handleMessage = (event) => {
     const messageData = JSON.parse(event.data);
+    console.log({ event, messageData });
     if ('online' in messageData) {
       showOnlinePeople(messageData.online);
+    } else if ('text' in messageData) {
+      setMessages((prev) => [...prev, { ...messageData }]);
     }
   };
+
+  const sendMessage = (event) => {
+    event.preventDefault();
+    ws.send(
+      JSON.stringify({
+        recipient: selectedUserId,
+        text: newMessageText,
+      })
+    );
+    setNewMessageText('');
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: newMessageText,
+        sender: id,
+        recipient: selectedUserId,
+        id: Date.now(),
+      },
+    ]);
+  };
+
+  const onlinePeopleExclOurUser = { ...onlinePeople };
+  delete onlinePeopleExclOurUser[id];
+
+  const messagesWithoutDupes = uniqBy(messages, 'id');
 
   return (
     <div className='flex h-screen '>
       <div className='bg-white w-1/3'>
         <Logo />
-
         {Object.keys(onlinePeopleExclOurUser).map((userId) => (
           <div
             className={`flex items-center cursor-pointer  hover:bg-gray-100 border-b border-gray-100 ${userId === selectedUserId ? 'bg-blue-50' : ''}`}
@@ -60,19 +96,48 @@ export default function Chat() {
               <div className='text-gray-400'>&larr; Select a person from the sidebar</div>
             </div>
           )}
+          {selectedUserId && (
+            <div className='relative h-full'>
+              <div className='overflow-y-auto absolute inset-0 pr-2'>
+                {messagesWithoutDupes.map((message, idx) => (
+                  <div
+                    className={`${message.sender === id ? 'text-right' : 'text-left'}`}
+                    key={idx}
+                  >
+                    <div className={`p-2 my-2 rounded-lg text-sm inline-block ${message.sender === id ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                      sender: {message.sender}
+                      <br />
+                      my id: {id}
+                      <br />
+                      {message.text}
+                    </div>
+                  </div>
+                ))}
+                <div ref={divUnderMessages}></div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className='flex gap-2'>
-          <input
-            className='bg-white border p-2 flex-grow rounded-xl'
-            type='text'
-            name=''
-            id=''
-            placeholder='Messsage...'
-          />
-          <button className='bg-blue-500 p-2 px-3 text-white rounded-xl text-xl'>
-            <BiSend />
-          </button>
-        </div>
+        {selectedUserId && (
+          <form
+            className='flex gap-2'
+            onSubmit={sendMessage}
+          >
+            <input
+              className='bg-white border p-2 flex-grow rounded-xl'
+              type='text'
+              value={newMessageText}
+              placeholder='Messsage...'
+              onChange={(event) => setNewMessageText(event.target.value)}
+            />
+            <button
+              type='submit'
+              className='bg-blue-500 p-2 px-3 text-white rounded-xl text-xl'
+            >
+              <BiSend />
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

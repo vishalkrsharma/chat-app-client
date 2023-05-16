@@ -4,6 +4,7 @@ import Avatars from '../components/Avatars';
 import Logo from '../components/Logo';
 import { UserContext } from '../context/UserContext';
 import { uniqBy } from 'lodash';
+import axios from 'axios';
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
@@ -16,9 +17,7 @@ export default function Chat() {
   const { username, id } = useContext(UserContext);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:5000');
-    setWs(ws);
-    ws.addEventListener('message', handleMessage);
+    connectToWs();
   }, []);
 
   useEffect(() => {
@@ -26,7 +25,29 @@ export default function Chat() {
     if (div) {
       div.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, selectedUserId]);
+
+  useEffect(() => {
+    async function getMessages() {
+      if (selectedUserId) {
+        const { data } = await axios.get(`/messages/${selectedUserId}`);
+        setMessages(data);
+      }
+    }
+    getMessages();
+  }, [selectedUserId]);
+
+  const connectToWs = () => {
+    const ws = new WebSocket('ws://localhost:5000');
+    setWs(ws);
+    ws.addEventListener('message', handleMessage);
+    ws.addEventListener('close', () => {
+      setTimeout(() => {
+        console.log('Disconnected. Trying to reconnect');
+        connectToWs();
+      }, 1000);
+    });
+  };
 
   const showOnlinePeople = (peopleArray) => {
     const people = {};
@@ -38,7 +59,6 @@ export default function Chat() {
 
   const handleMessage = (event) => {
     const messageData = JSON.parse(event.data);
-    console.log({ event, messageData });
     if ('online' in messageData) {
       showOnlinePeople(messageData.online);
     } else if ('text' in messageData) {
@@ -61,7 +81,7 @@ export default function Chat() {
         text: newMessageText,
         sender: id,
         recipient: selectedUserId,
-        id: Date.now(),
+        _id: Date.now(),
       },
     ]);
   };
@@ -69,7 +89,7 @@ export default function Chat() {
   const onlinePeopleExclOurUser = { ...onlinePeople };
   delete onlinePeopleExclOurUser[id];
 
-  const messagesWithoutDupes = uniqBy(messages, 'id');
+  const messagesWithoutDupes = uniqBy(messages, '_id');
 
   return (
     <div className='flex h-screen '>
@@ -105,10 +125,6 @@ export default function Chat() {
                     key={idx}
                   >
                     <div className={`p-2 my-2 rounded-lg text-sm inline-block ${message.sender === id ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
-                      sender: {message.sender}
-                      <br />
-                      my id: {id}
-                      <br />
                       {message.text}
                     </div>
                   </div>

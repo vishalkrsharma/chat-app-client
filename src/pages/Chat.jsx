@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { BiSend } from 'react-icons/bi';
+import { BiPaperclip, BiSend } from 'react-icons/bi';
 import Avatars from '../components/Avatars';
 import Logo from '../components/Logo';
 import { UserContext } from '../context/UserContext';
@@ -77,28 +77,39 @@ export default function Chat() {
     if ('online' in messageData) {
       showOnlinePeople(messageData.online);
     } else if ('text' in messageData) {
-      setMessages((prev) => [...prev, { ...messageData }]);
+      if (messageData.sender === selectedUserId) {
+        setMessages((prev) => [...prev, { ...messageData }]);
+      }
     }
   };
 
-  const sendMessage = (event) => {
-    event.preventDefault();
+  const sendMessage = async (event, file = null) => {
+    if (event) {
+      event.preventDefault();
+    }
     ws.send(
       JSON.stringify({
         recipient: selectedUserId,
         text: newMessageText,
+        file,
       })
     );
-    setNewMessageText('');
-    setMessages((prev) => [
-      ...prev,
-      {
-        text: newMessageText,
-        sender: id,
-        recipient: selectedUserId,
-        _id: Date.now(),
-      },
-    ]);
+
+    if (file) {
+      const { data } = await axios.get(`/messages/${selectedUserId}`);
+      setMessages(data);
+    } else {
+      setNewMessageText('');
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: newMessageText,
+          sender: id,
+          recipient: selectedUserId,
+          _id: Date.now(),
+        },
+      ]);
+    }
   };
 
   const logout = () => {
@@ -111,10 +122,23 @@ export default function Chat() {
     logout();
   };
 
+  const sendFile = (event) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(event.target.files[0]);
+    reader.onload = () => {
+      sendMessage(null, {
+        name: event.target.files[0].name,
+        data: reader.result,
+      });
+    };
+  };
+
   const onlinePeopleExclOurUser = { ...onlinePeople };
   delete onlinePeopleExclOurUser[id];
 
   const messagesWithoutDupes = uniqBy(messages, '_id');
+
+  console.log(onlinePeopleExclOurUser);
 
   return (
     <div className='flex h-screen'>
@@ -169,6 +193,16 @@ export default function Chat() {
                   >
                     <div className={`p-2 my-2 rounded-lg text-sm inline-block ${message.sender === id ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
                       {message.text}
+                      {message.file && (
+                        <a
+                          className='border-b flex items-center gap-2'
+                          href={axios.defaults.baseURL + '/uploads/' + message.file}
+                          target='_blank'
+                        >
+                          <BiPaperclip className='text-lg' />
+                          {message.file}
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -189,6 +223,14 @@ export default function Chat() {
               placeholder='Messsage...'
               onChange={(event) => setNewMessageText(event.target.value)}
             />
+            <label className='bg-blue-500 p-2 px-3 text-white rounded-xl text-xl cursor-pointer flex items-center'>
+              <input
+                type='file'
+                className='hidden'
+                onChange={sendFile}
+              />
+              <BiPaperclip />
+            </label>
             <button
               type='submit'
               className='bg-blue-500 p-2 px-3 text-white rounded-xl text-xl'

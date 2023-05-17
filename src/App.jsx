@@ -3,7 +3,7 @@ import Routes from './Routes';
 import { UserContextProvider } from './context/UserContext';
 
 function App() {
-  axios.defaults.baseURL = 'http://localhost:5000';
+  axios.defaults.baseURL = import.meta.env.VITE_SERVER_URL;
   axios.defaults.withCredentials = true;
   return (
     <UserContextProvider>

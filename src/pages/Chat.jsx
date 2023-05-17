@@ -1,6 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { BiPaperclip, BiSend } from 'react-icons/bi';
-import Avatars from '../components/Avatars';
 import Logo from '../components/Logo';
 import { UserContext } from '../context/UserContext';
 import { uniqBy } from 'lodash';

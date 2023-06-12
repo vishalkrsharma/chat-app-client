@@ -52,8 +52,7 @@ export default function Chat() {
   }, [onlinePeople]);
 
   const connectToWs = () => {
-    const ws = new WebSocket(import.meta.env.VITE_WS_URL);
-    // const ws = new WebSocket('ws://chat-app-server-five.vercel.app');
+    const ws = new WebSocket('ws://localhost:5000');
     setWs(ws);
     ws.addEventListener('message', handleMessage);
     ws.addEventListener('close', () => {

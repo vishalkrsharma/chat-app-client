@@ -3,8 +3,8 @@ import Routes from './Routes';
 import { UserContextProvider } from './context/UserContext';
 
 function App() {
-  axios.defaults.baseURL = import.meta.env.VITE_SERVER_URL;
-  // axios.defaults.baseURL = 'http://chat-app-server-five.vercel.app';
+  axios.defaults.baseURL = 'http://localhost:5000';
+  axios.defaults.withCredentials = true;
 
   axios.defaults.withCredentials = true;
   return (

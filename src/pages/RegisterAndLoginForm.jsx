@@ -3,7 +3,7 @@ import axios from 'axios';
 import { UserContext } from '../context/UserContext';
 
 export default function RegisterAnLoginForm() {
-  const { setUsername, setId } = useContext(UserContext);
+  const { setUsername, setId, isLoggedIn, setIsLoggedIn } = useContext(UserContext);
   const [userInfo, setUserInfo] = useState({
     username: '',
     password: '',
@@ -32,6 +32,7 @@ export default function RegisterAnLoginForm() {
         className='w-64 mx-auto'
         onSubmit={handleSubmit}
       >
+        <div className='text-center text-3xl mb-5 text-blue-500'>{isLoginOrRegister === 'login' ? 'Login' : 'Register'}</div>
         <input
           className='block w-full rounded-sm p-2 mb-2 border'
           type='text'
@@ -63,7 +64,14 @@ export default function RegisterAnLoginForm() {
           {isLoginOrRegister === 'login' && (
             <div>
               Dont have an account?&nbsp;
-              <button onClick={() => setIsLoginOrRegister('register')}>Register</button>
+              <button
+                onClick={() => {
+                  setIsLoginOrRegister('register');
+                  setIsLoggedIn(!isLoggedIn);
+                }}
+              >
+                Register
+              </button>
             </div>
           )}
         </div>

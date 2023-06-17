@@ -47,7 +47,7 @@ function AuthForm() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const { pathname } = useLocation();
-  const { register } = useUser();
+  const { register, login } = useUser();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -56,7 +56,11 @@ function AuthForm() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    register(userInfo);
+    if (pathname === '/register') {
+      register(userInfo);
+    } else {
+      login(userInfo);
+    }
   };
 
   return (
